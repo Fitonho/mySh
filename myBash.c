@@ -14,8 +14,8 @@ char* getCommand(char* command,unsigned long size); //retorna stdin menos \n
 char** split(char* str,char** splices); //divide str em substrings separadas por ' ' 
 int runCommand(char* command, char** argList); //roda o comando se for um built-in, senão chama spawn. retorna 1 caso comando seja exit
 int spawn(char* program, char** argList); //spawna um processo do programa de entrada
-void handler (int signal_number);
 void ignore (int signal_number);
+void sigStructsInit();
 
 char* user;
 char* name;
@@ -23,17 +23,10 @@ char* home;
 sig_atomic_t interrupted = 0;
 int running = 1;
 
+
+
 int main(){
-    struct sigaction sINT;
-    memset(&sINT,0,sizeof(sINT));
-    sINT.sa_handler = &ignore;
-    sigaction(SIGINT,&sINT,NULL);
-    struct sigaction sSTP;
-    memset(&sSTP,0,sizeof(sSTP));
-    sSTP.sa_handler = &ignore;
-    sigaction(SIGTSTP,&sSTP,NULL);
-
-
+    sigStructsInit();
     user = getenv("USER");
     name = getenv("NAME");
     home = getenv("HOME");
@@ -148,8 +141,16 @@ int spawn(char* program, char** argList){
     }
 }
 
-void handler (int signal_number){
-}
 void ignore (int signal_number){
     interrupted = 1;
+}
+void sigStructsInit(){
+    struct sigaction sINT;
+    memset(&sINT,0,sizeof(sINT));
+    sINT.sa_handler = &ignore;
+    sigaction(SIGINT,&sINT,NULL);
+    struct sigaction sSTP;
+    memset(&sSTP,0,sizeof(sSTP));
+    sSTP.sa_handler = &ignore;
+    sigaction(SIGTSTP,&sSTP,NULL);
 }
