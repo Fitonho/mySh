@@ -13,16 +13,20 @@ char* parseCWD(); //se cwd for filho ou o próprio $HOME, coloca '~' no lugar do
 char* getCommand(char* command,unsigned long size); //retorna stdin menos \n
 char** split(char* str,char** splices); //divide str em substrings separadas por ' ' 
 int runCommand(char* command, char** argList); //roda o comando se for um built-in, senão chama spawn. retorna 1 caso comando seja exit
-int spawn(char* program, char** argList); //spawna um processo do programa de entrada
+int spawn(char* program, char** argList,int readPipe,int writePipe); //spawna um processo do programa de entrada
 void ignore (int signal_number);
 void sigStructsInit();
 int changeDirectory(char* command, char** argList);
+int getNextPipePosition(char** argList);
+int handlePipes(char* command, char** argList, int readPipe);
 
 char* user;
 char* name;
 char* home;
 sig_atomic_t interrupted = 0;
 int running = 1;
+int childList[MAX_ARG_NUMBER];
+int childI = 0;
 
 
 
@@ -41,14 +45,16 @@ int main(){
         command = getCommand(command,MAX_CMD_SIZE);
         argList = split(command,argList);
         if(runCommand(argList[0],argList)) break;
-        wait(&childStatus);
-        
+        for(int i = 0; i<childI;i++){
+            waitpid(childList[i],&childStatus,0);
+        }
+        childI =0;
         for(int i=0; argList[i]!=NULL;i++){
             argList[i] = NULL;
-        }    
+        }
+        command[0]='\0';
     }
 
-    printf("finalizando...\n");
     free(argList);
     free(command);
     return 0;
@@ -88,8 +94,8 @@ char* getCommand(char* command,unsigned long size){
         if(interrupted != 1){
             running = 0;
         } 
-        interrupted = 0;
         printf("\n");
+        interrupted = 0;
     }
         
     return command;
@@ -113,15 +119,44 @@ int runCommand(char* command, char** argList){
     if(*argList == NULL)
         return 0;
 
-    if(strcmp(command,"cd") == 0){
+    if(strcmp(command,"cd") == 0)
         changeDirectory(command,argList);
-    }
         
     else if(strcmp(command,"exit") == 0)
         return 1;
-    else
-        spawn(command,argList);
+    else{
+        handlePipes(command,argList,0);
+    }
     
+    return 0;
+}
+int handlePipes(char* command, char** argList,int readPipe){
+    int pipePos;
+    if((pipePos = getNextPipePosition(argList)) != 0){
+        int pipeDescriptors[2];
+        pipe(pipeDescriptors);
+        int readFd = pipeDescriptors[0]; int writeFd = pipeDescriptors[1];
+
+        char** firstArg = malloc(pipePos*sizeof(char*));
+        memcpy(firstArg,argList,pipePos*sizeof(char*));
+        firstArg[pipePos] = NULL;
+
+        spawn(command,firstArg,readPipe,writeFd);
+        close(writeFd);
+        handlePipes(argList[pipePos+1],&argList[pipePos+1],readFd);
+        close(readFd);
+        free(firstArg);
+    }else{
+        spawn(command,argList,readPipe,0);
+    }
+}
+
+int getNextPipePosition(char** argList){
+    for(int i=0; argList[i]!=NULL;i++){
+            if(strcmp(argList[i],"|") == 0){
+                return i;
+            }
+    }
     return 0;
 }
 
@@ -133,13 +168,20 @@ int changeDirectory(char* command, char** argList){
 }
 
 
-int spawn(char* program, char** argList){
+int spawn(char* program, char** argList,int readPipe,int writePipe){
     pid_t childPid;
     
     childPid = fork();
-    if(childPid != 0)
+    if(childPid != 0){
+        childList[childI] = childPid;
+        childI++;
         return childPid;
+    }
     else{
+        if(readPipe != 0)
+            dup2(readPipe,STDIN_FILENO);
+        if(writePipe != 0)
+            dup2(writePipe,STDOUT_FILENO);
         execvp(program,argList);
         fprintf(stderr,"Error: no such file or command.\n");
         abort();

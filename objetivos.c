@@ -20,8 +20,8 @@
 //// comandos (apenas ignore a linha com o comando).
 //// 11. (0,5) Ctrl+D deve sair do processador de comandos, tal qual se o comando exit tivesse
 //// sido utilizado.
-//* 12. (1,0) O processador de comandos deve permitir o uso de pipes. O símbolo | indica a
-//* separação entre cada programa, conectando a saída padrão do programa à esquerda
-//* com a entrada padrão do programa à direita através de um pipe.
-//* 13. (2,0) O processador de comandos deve permitir o uso de múltiplos pipes na mesma
-//* linha de comando.
+//// 12. (1,0) O processador de comandos deve permitir o uso de pipes. O símbolo | indica a
+//// separação entre cada programa, conectando a saída padrão do programa à esquerda
+//// com a entrada padrão do programa à direita através de um pipe.
+//// 13. (2,0) O processador de comandos deve permitir o uso de múltiplos pipes na mesma
+//// linha de comando.
