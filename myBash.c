@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <string.h>
+#include <signal.h>
 
 #define MAX_CMD_SIZE 512
 #define MAX_ARG_NUMBER 10
@@ -13,12 +14,26 @@ char* getCommand(char* command,unsigned long size); //retorna stdin menos \n
 char** split(char* str,char** splices); //divide str em substrings separadas por ' ' 
 int runCommand(char* command, char** argList); //roda o comando se for um built-in, senão chama spawn. retorna 1 caso comando seja exit
 int spawn(char* program, char** argList); //spawna um processo do programa de entrada
+void handler (int signal_number);
+void ignore (int signal_number);
 
 char* user;
 char* name;
 char* home;
+sig_atomic_t interrupted = 0;
+int running = 1;
 
 int main(){
+    struct sigaction sINT;
+    memset(&sINT,0,sizeof(sINT));
+    sINT.sa_handler = &ignore;
+    sigaction(SIGINT,&sINT,NULL);
+    struct sigaction sSTP;
+    memset(&sSTP,0,sizeof(sSTP));
+    sSTP.sa_handler = &ignore;
+    sigaction(SIGTSTP,&sSTP,NULL);
+
+
     user = getenv("USER");
     name = getenv("NAME");
     home = getenv("HOME");
@@ -26,7 +41,7 @@ int main(){
     char* command = (char*)malloc(MAX_CMD_SIZE * sizeof(char));
     char** argList = malloc(MAX_ARG_NUMBER * sizeof(char*));
 
-    while(1){
+    while(running){
         
         printPromptString();
         command = getCommand(command,MAX_CMD_SIZE);
@@ -39,7 +54,7 @@ int main(){
         }    
     }
 
-    
+    printf("finalizando...\n");
     free(argList);
     free(command);
     return 0;
@@ -73,7 +88,16 @@ char* parseCWD(){
 
 char* getCommand(char* command,unsigned long size){
     fgets(command,size,stdin);
-    command[strlen(command)-1] = '\0';
+    if(strlen(command)>0)
+        command[strlen(command)-1] = '\0';
+    else{
+        if(interrupted != 1){
+            running = 0;
+        } 
+        interrupted = 0;
+        printf("\n");
+    }
+        
     return command;
 }
 
@@ -122,4 +146,10 @@ int spawn(char* program, char** argList){
         fprintf(stderr,"Error: no such file or command.\n");
         abort();
     }
+}
+
+void handler (int signal_number){
+}
+void ignore (int signal_number){
+    interrupted = 1;
 }
