@@ -16,6 +16,7 @@ int runCommand(char* command, char** argList); //roda o comando se for um built-
 int spawn(char* program, char** argList); //spawna um processo do programa de entrada
 void ignore (int signal_number);
 void sigStructsInit();
+int changeDirectory(char* command, char** argList);
 
 char* user;
 char* name;
@@ -113,10 +114,7 @@ int runCommand(char* command, char** argList){
         return 0;
 
     if(strcmp(command,"cd") == 0){
-        if( argList[1] == NULL || strcmp(argList[1],"~") == 0)
-            chdir(home);
-        else if (chdir(argList[1]) == -1)
-            fprintf(stderr,"Error: no such directory.\n");
+        changeDirectory(command,argList);
     }
         
     else if(strcmp(command,"exit") == 0)
@@ -125,6 +123,13 @@ int runCommand(char* command, char** argList){
         spawn(command,argList);
     
     return 0;
+}
+
+int changeDirectory(char* command, char** argList){
+    if( argList[1] == NULL || strcmp(argList[1],"~") == 0)
+        chdir(home);
+    else if (chdir(argList[1]) == -1)
+        fprintf(stderr,"Error: no such directory.\n"); 
 }
 
 
