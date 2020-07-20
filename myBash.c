@@ -79,12 +79,14 @@ char* getCommand(char* command,unsigned long size){
 
 char** split(char* str,char** splices){
     char delim = ' ';
+    int i;
     
     char* token = strtok(str,&delim);
-    for(int i=0; token!=NULL && i<MAX_ARG_NUMBER;i++){
+    for(i=0; token!=NULL && i<MAX_ARG_NUMBER;i++){
         splices[i] = token;
         token = strtok(NULL,&delim);
     }
+    splices[i]=NULL;
     free(token);
     return splices;
 }
@@ -94,8 +96,10 @@ int runCommand(char* command, char** argList){
         return 0;
 
     if(strcmp(command,"cd") == 0){
-        if (chdir(argList[1]) == -1)
-            fprintf(stderr,"Error: no such file of directory.\n");
+        if( argList[1] == NULL || strcmp(argList[1],"~") == 0)
+            chdir(home);
+        else if (chdir(argList[1]) == -1)
+            fprintf(stderr,"Error: no such directory.\n");
     }
         
     else if(strcmp(command,"exit") == 0)
@@ -115,7 +119,7 @@ int spawn(char* program, char** argList){
         return childPid;
     else{
         execvp(program,argList);
-        fprintf(stderr,"Error: no such file of directory.\n");
+        fprintf(stderr,"Error: no such file or command.\n");
         abort();
     }
 }
