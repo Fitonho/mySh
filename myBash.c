@@ -4,6 +4,7 @@
 #include <sys/wait.h>
 #include <string.h>
 #include <signal.h>
+#include <errno.h>
 
 //altere esses limites se necessário.
 #define MAX_INPUT_SIZE 1024
@@ -36,9 +37,9 @@ int main(){
     user = getenv("USER");
     name = getenv("NAME");
     home = getenv("HOME");
-    int childStatus;
-    char* command = (char*)malloc(MAX_INPUT_SIZE * sizeof(char));
-    char** argList = malloc(MAX_ARG_COUNT * sizeof(char*));
+
+    char command[MAX_INPUT_SIZE];
+    char * argList[MAX_ARG_COUNT];
 
     while(running){
         printPromptString();
@@ -49,8 +50,6 @@ int main(){
         cleanArgList(command,argList);
     }
 
-    free(argList);
-    free(command);
     return 0;
 }
 
@@ -131,7 +130,7 @@ int spawnNextCommand(char* command, char** argList,int readPipe){
         pipe(pipeDescriptors);
         int readFd = pipeDescriptors[0]; int writeFd = pipeDescriptors[1];
 
-        char** nextArg = malloc((pipePos+1)*sizeof(char*));
+        char* nextArg[pipePos+1];
         memcpy(nextArg,argList,pipePos*sizeof(char*));
         nextArg[pipePos] = NULL;
 
@@ -139,7 +138,6 @@ int spawnNextCommand(char* command, char** argList,int readPipe){
         close(writeFd);
         spawnNextCommand(argList[pipePos+1],&argList[pipePos+1],readFd);
         close(readFd);
-        free(nextArg);
     }else{
         spawn(command,argList,readPipe,0);
     }
@@ -160,7 +158,7 @@ int spawn(char* program, char** argList,int readPipe,int writePipe){
         if(writePipe != 0)
             dup2(writePipe,STDOUT_FILENO);
         execvp(program,argList);
-        fprintf(stderr,"Error: no such file or command.\n");
+        fprintf(stderr,"Error: %s\n",strerror(errno));
         abort();
     }
 }
@@ -193,7 +191,7 @@ int changeDirectory(char* command, char** argList){
     if( argList[1] == NULL || strcmp(argList[1],"~") == 0)
         chdir(home);
     else if (chdir(argList[1]) == -1)
-        fprintf(stderr,"Error: no such directory.\n"); 
+        fprintf(stderr,"Error: %s\n",strerror(errno)); 
 }
 
 void ignore (int signal_number){
