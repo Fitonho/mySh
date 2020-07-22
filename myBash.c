@@ -1,3 +1,9 @@
+/** 
+ ** trabalho feito por:
+ **     Filipe Antonio Constantino Mouro
+ **     Beatriz Medeiros Mazieri
+ **/ 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
