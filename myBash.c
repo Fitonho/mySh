@@ -79,13 +79,13 @@ void getCommand(char* command,unsigned long size){
 }
 
 void split(char* str,char** splices){
-    char delim = ' ';
+    const char * delim = " ";
     int i;
     
-    char* token = strtok(str,&delim);
+    char* token = strtok(str,delim);
     for(i=0; token!=NULL && i<MAX_ARG_COUNT;i++){
         splices[i] = token;
-        token = strtok(NULL,&delim);
+        token = strtok(NULL,delim);
     }
     splices[i]=NULL;
     free(token);
