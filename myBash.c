@@ -1,8 +1,8 @@
-/** 
+/**
  ** trabalho feito por:
  **     Filipe Antonio Constantino Mouro
  **     Beatriz Medeiros Mazieri
- **/ 
+ **/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,11 +15,12 @@
 //altere esses limites se necessário.
 #define MAX_INPUT_SIZE 1024
 #define MAX_ARG_COUNT 20
+#define MAX_HOST_NAME_SIZE 64
 
 void printPromptString(); //cria e printa a Prompt String
 char* parseCWD(); //se cwd for filho ou o próprio $HOME, coloca '~' no lugar do $HOME
 void getCommand(char* command,unsigned long size); //retorna stdin menos \n
-void split(char* str,char** splices); //divide str em substrings separadas por ' ' 
+void split(char* str,char** splices); //divide str em substrings separadas por ' '
 int runCommand(char* command, char** argList); //roda o comando se for um built-in, senão chama spawnNextCommand.
 int spawn(char* program, char** argList,int readPipe,int writePipe); //spawna o comando enviado com os pipes corretos
 void ignore (int signal_number); //função enviada para as estruturas de captura de sinal
@@ -31,7 +32,7 @@ void waitAllChilds();
 void cleanArgList(char* command, char** argList);
 
 char* user;
-char* name;
+char name[MAX_HOST_NAME_SIZE];
 char* home;
 sig_atomic_t interrupted = 0;
 int running = 1;
@@ -41,7 +42,7 @@ int childI = 0;
 int main(){
     initializeSignalStructures();
     user = getenv("USER");
-    name = getenv("NAME");
+    gethostname(name,MAX_HOST_NAME_SIZE);
     home = getenv("HOME");
 
     char command[MAX_INPUT_SIZE];
@@ -77,7 +78,7 @@ void getCommand(char* command,unsigned long size){
     else{
         if(interrupted != 1){
             running = 0;
-        } 
+        }
         printf("\n");
         interrupted = 0;
     }
@@ -86,7 +87,7 @@ void getCommand(char* command,unsigned long size){
 void split(char* str,char** splices){
     const char * delim = " ";
     int i;
-    
+
     char* token = strtok(str,delim);
     for(i=0; token!=NULL && i<MAX_ARG_COUNT;i++){
         splices[i] = token;
@@ -102,7 +103,7 @@ int runCommand(char* command, char** argList){
 
     if(strcmp(command,"cd") == 0)
         changeDirectory(command,argList);
-        
+
     else if(strcmp(command,"exit") == 0){
         running = 0;
         return 1;
@@ -110,7 +111,7 @@ int runCommand(char* command, char** argList){
     else{
         spawnNextCommand(command,argList,0);
     }
-    
+
     return 0;
 }
 
@@ -151,7 +152,7 @@ int spawnNextCommand(char* command, char** argList,int readPipe){
 
 int spawn(char* program, char** argList,int readPipe,int writePipe){
     pid_t childPid;
-    
+
     childPid = fork();
     if(childPid != 0){
         childList[childI] = childPid;
@@ -181,7 +182,7 @@ char* parseCWD(){
     else{
         free(parsedCwd);
         return cwd;
-    }    
+    }
 }
 
 int getNextPipePosition(char** argList){
@@ -197,7 +198,7 @@ int changeDirectory(char* command, char** argList){
     if( argList[1] == NULL || strcmp(argList[1],"~") == 0)
         chdir(home);
     else if (chdir(argList[1]) == -1)
-        fprintf(stderr,"Error: %s\n",strerror(errno)); 
+        fprintf(stderr,"Error: %s\n",strerror(errno));
 }
 
 void ignore (int signal_number){
